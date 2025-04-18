@@ -11,7 +11,7 @@ type Option struct {
 	LogLevel    string
 	BindAddress string
 	Port        int
-	BaseURL     string
+	//BaseURL     string
 
 	EnableHTTP2 bool
 	EnableTLS   bool
@@ -27,7 +27,7 @@ func (o *Option) WithDefaults() *Option {
 	o.LogLevel = defaultLogLevel
 	o.BindAddress = defaultBindAddress
 	o.Port = defaultPort
-	o.BaseURL = defaultBaseURL
+	//o.BaseURL = defaultBaseURL
 	o.EnableHTTP2 = defaultEnableHTTP2
 	o.EnableTLS = defaultEnableTLS
 	return o
@@ -46,9 +46,9 @@ func (o *Option) WithCliFlags(flags *pflag.FlagSet) *Option {
 		o.Port = v
 	}
 
-	if v, err := flags.GetString(flagBaseURL); err == nil && flags.Changed(flagBaseURL) {
-		o.BaseURL = v
-	}
+	//if v, err := flags.GetString(flagBaseURL); err == nil && flags.Changed(flagBaseURL) {
+		//o.BaseURL = v
+	//}
 
 	if v, err := flags.GetBool(flagHTTP2); err == nil && flags.Changed(flagHTTP2) {
 		o.EnableHTTP2 = v
