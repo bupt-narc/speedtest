@@ -2,29 +2,31 @@ package speedtest
 
 import (
 	"crypto/tls"
-	"embed"
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
+	"github.com/go-chi/render"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/sirupsen/logrus"
 	"io"
-	"io/fs"
 	"net"
 	"net/http"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
-	"github.com/go-chi/render"
-	"github.com/sirupsen/logrus"
 )
 
 var (
 	randomData []byte
 )
 
-//go:embed frontend/dist
-var defaultAssets embed.FS
+func getEnv(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
+}
 
 func ListenAndServe() error {
 	log := logrus.WithFields(logrus.Fields{
@@ -42,19 +44,11 @@ func ListenAndServe() error {
 		AllowedMethods: []string{"GET", "POST", "OPTIONS", "HEAD"},
 		AllowedHeaders: []string{"*"},
 	})
-
 	r.Use(cs.Handler)
 	r.Use(middleware.NoCache)
 	r.Use(middleware.Recoverer)
 
-	var assetFS http.FileSystem
-	sub, err := fs.Sub(defaultAssets, "frontend/dist")
-	if err != nil {
-		log.Fatalf("Failed when processing default assets: %s", err)
-	}
-	assetFS = http.FS(sub)
-
-	r.Get(options.BaseURL+"/*", pages(assetFS, options.BaseURL))
+	// 仅处理后端 API 接口请求
 	r.HandleFunc(options.BaseURL+"/empty", empty)
 	r.HandleFunc(options.BaseURL+"/backend/empty", empty)
 	r.Get(options.BaseURL+"/garbage", garbage)
@@ -62,7 +56,7 @@ func ListenAndServe() error {
 	r.Get(options.BaseURL+"/getIP", getIP)
 	r.Get(options.BaseURL+"/backend/getIP", getIP)
 
-	// PHP frontend default values compatibility
+	// PHP frontend default values compatibility（可选保留）
 	r.HandleFunc(options.BaseURL+"/empty.php", empty)
 	r.HandleFunc(options.BaseURL+"/backend/empty.php", empty)
 	r.Get(options.BaseURL+"/garbage.php", garbage)
@@ -82,7 +76,6 @@ func startListener(r *chi.Mux) error {
 	addr := net.JoinHostPort(options.BindAddress, strconv.Itoa(options.Port))
 	log.Infof("Starting backend server on %s", addr)
 
-	// TLS and HTTP/2.
 	if options.EnableTLS {
 		log.Info("Use TLS connection.")
 		if !(options.EnableHTTP2) {
@@ -116,29 +109,6 @@ func startListener(r *chi.Mux) error {
 	return s
 }
 
-//go:generate
-func pages(fs http.FileSystem, baseURL string) http.HandlerFunc {
-	log := logrus.WithFields(logrus.Fields{
-		"func": "pages",
-	})
-	var removeBaseURL *regexp.Regexp
-	if baseURL != "" {
-		removeBaseURL = regexp.MustCompile("^" + baseURL + "/")
-	}
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		log.Debugf("Request %s.", r.URL.Path)
-		if baseURL != "" {
-			r.URL.Path = removeBaseURL.ReplaceAllString(r.URL.Path, "/")
-		}
-		if r.RequestURI == "/" {
-			r.RequestURI = "/index.html"
-		}
-		http.FileServer(fs).ServeHTTP(w, r)
-	}
-
-	return fn
-}
-
 func empty(w http.ResponseWriter, r *http.Request) {
 	_, err := io.Copy(io.Discard, r.Body)
 	if err != nil {
@@ -146,7 +116,6 @@ func empty(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = r.Body.Close()
-
 	w.Header().Set("Connection", "keep-alive")
 	w.WriteHeader(http.StatusOK)
 }
@@ -161,12 +130,10 @@ func garbage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", "attachment; filename=random.dat")
 	w.Header().Set("Content-Transfer-Encoding", "binary")
 
-	// chunk size set to 4 by default
 	chunks := 4
 	i, err := strconv.ParseInt(r.FormValue("ckSize"), 10, 64)
 	switch {
 	case err != nil:
-		// 无效的请求参数chSize
 		log.Debugf("Invalid param ckSize, using the default size: 4")
 	case i > MaxChunkSize:
 		log.Warnf("Invalid param ckSize: %d, using max chunk size: %d instead.",
@@ -233,6 +200,5 @@ func getIP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ret.ProcessedString = clientIP
-
 	render.JSON(w, r, ret)
 }
