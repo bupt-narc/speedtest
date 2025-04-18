@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    environment:
+      - VUE_APP_BACKEND_URL=${BACKEND_DOMAIN}  # 前端通过此变量访问后端
+    depends_on:
+      - backend
+
+  backend:
+    build: ./backend
+    environment:
+      - BIND_ADDRESS=0.0.0.0
+      - PORT=80
+      - BASE_URL=/api          # 可选，统一 API 路径
+    expose:
+      - "80"
+    # 域名通过外部环境变量配置（如 BACKEND_DOMAIN=api.speedtest.example.com）
+
+networks:
+  default:
+    name: speedtest-net
