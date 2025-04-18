@@ -39,30 +39,42 @@ func ListenAndServe() error {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.GetHead)
 
+	// 从环境变量读取 CORS 允许的域名
+	frontendDomain := os.Getenv("FRONTEND_DOMAIN")
+	if frontendDomain == "" {
+		frontendDomain = "*"
+	}
 	cs := cors.New(cors.Options{
-		AllowedOrigins: []string{"*"},
+		AllowedOrigins: []string{frontendDomain},
 		AllowedMethods: []string{"GET", "POST", "OPTIONS", "HEAD"},
 		AllowedHeaders: []string{"*"},
 	})
+
 	r.Use(cs.Handler)
 	r.Use(middleware.NoCache)
 	r.Use(middleware.Recoverer)
 
-	// 仅处理后端 API 接口请求
-	r.HandleFunc(options.BaseURL+"/empty", empty)
-	r.HandleFunc(options.BaseURL+"/backend/empty", empty)
-	r.Get(options.BaseURL+"/garbage", garbage)
-	r.Get(options.BaseURL+"/backend/garbage", garbage)
-	r.Get(options.BaseURL+"/getIP", getIP)
-	r.Get(options.BaseURL+"/backend/getIP", getIP)
+	// 从环境变量读取 API 基础路径
+	baseURL := os.Getenv("BASE_URL")
+	if baseURL == "" {
+		baseURL = "/"
+	}
 
-	// PHP frontend default values compatibility（可选保留）
-	r.HandleFunc(options.BaseURL+"/empty.php", empty)
-	r.HandleFunc(options.BaseURL+"/backend/empty.php", empty)
-	r.Get(options.BaseURL+"/garbage.php", garbage)
-	r.Get(options.BaseURL+"/backend/garbage.php", garbage)
-	r.Get(options.BaseURL+"/getIP.php", getIP)
-	r.Get(options.BaseURL+"/backend/getIP.php", getIP)
+	// 定义测速 API 路由
+	r.HandleFunc(baseURL+"/empty", empty)
+	r.HandleFunc(baseURL+"/backend/empty", empty)
+	r.Get(baseURL+"/garbage", garbage)
+	r.Get(baseURL+"/backend/garbage", garbage)
+	r.Get(baseURL+"/getIP", getIP)
+	r.Get(baseURL+"/backend/getIP", getIP)
+
+	// 兼容 PHP 旧路径
+	r.HandleFunc(baseURL+"/empty.php", empty)
+	r.HandleFunc(baseURL+"/backend/empty.php", empty)
+	r.Get(baseURL+"/garbage.php", garbage)
+	r.Get(baseURL+"/backend/garbage.php", garbage)
+	r.Get(baseURL+"/getIP.php", getIP)
+	r.Get(baseURL+"/backend/getIP.php", getIP)
 
 	return startListener(r)
 }
