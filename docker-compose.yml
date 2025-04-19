@@ -14,7 +14,7 @@ services:
     build: ./backend
     environment:
       FRONTEND_DOMAIN: http://localhost:8081  # 限制仅允许前端域名跨域
-      API_BASE_PATH: ""                       # API 路径前缀设为空
+      API_BASE_PATH: /api
       BIND_ADDRESS: 0.0.0.0
       PORT: 80
     ports:

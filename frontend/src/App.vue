@@ -81,7 +81,7 @@ onMounted(() => {
 
 function testNetworkStatus() {
     const startTime = Date.now()
-    fetch("backend/getIP")
+    fetch("api/getIP")
         .then(response => {
             if (!response.ok) {
                 now.value.Ping = 0
@@ -104,7 +104,7 @@ function testNetworkStatus() {
 }
 
 async function testDownloadSpeed() {
-  const response = await fetch("backend/garbage?ckSize=4");
+  const response = await fetch("api/garbage?ckSize=4");
   if (!response.ok) {
     downloadSpeed.value = 0;
     return;
@@ -147,7 +147,7 @@ async function testUploadSpeed() {
         dataView.setUint8(i, i % 256);
     }
     const startTime = Date.now();
-    fetch("backend/empty", {
+    fetch("api/empty", {
         method: "POST",
         body: dataView
     })
