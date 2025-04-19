@@ -12,4 +12,4 @@ FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/speedtest .
 EXPOSE 80
-CMD ["./speedtest", "ingress", "--bind-address=0.0.0.0", "--port=8081"]
+CMD ["./speedtest", "ingress", "--bind-address=0.0.0.0", "--port=80"]
