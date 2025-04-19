@@ -18,7 +18,7 @@ export default defineConfig({
     open: false,
     proxy: {
       '^/backend': {
-        target: process.env.VITE_BACKEND_URL || 'http://localhost:8080',  // 读取环境变量
+        target: process.env.VITE_BACKEND_URL || 'http://localhost:8081',  // 读取环境变量
         changeOrigin: true
       }
     }
