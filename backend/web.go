@@ -54,20 +54,29 @@ func ListenAndServe() error {
 	r.Use(middleware.NoCache)
 	r.Use(middleware.Recoverer)
 
-	// 从环境变量读取 API 基础路径
-	baseURL := os.Getenv("BASE_URL")
-	if baseURL == "" {
-		baseURL = "/"
-	}
-
+	frontendDomain := os.Getenv("FRONTEND_DOMAIN")
+    	if frontendDomain == "" {
+        	frontendDomain = "*" // 默认允许所有
+    	}
+	cs := cors.New(cors.Options{
+    		AllowedOrigins:   []string{frontendDomain}, // 动态读取环境变量
+    		AllowedMethods:   []string{"GET", "POST", "OPTIONS", "HEAD"},
+    		AllowedHeaders:   []string{"*"},
+    		AllowCredentials: true,                     // 可选，根据需求添加
+	})
 	// 定义测速 API 路由
-	r.HandleFunc(baseURL+"/empty", empty)
-	r.HandleFunc(baseURL+"/backend/empty", empty)
-	r.Get(baseURL+"/garbage", garbage)
-	r.Get(baseURL+"/backend/garbage", garbage)
-	r.Get(baseURL+"/getIP", getIP)
-	r.Get(baseURL+"/backend/getIP", getIP)
-
+	// 替换 options.BaseURL 为环境变量读取：
+	basePath := os.Getenv("API_BASE_PATH")
+	if basePath == "" {
+	    basePath = "/" // 默认根路径
+	}
+	// 修改所有路由注册代码（原 options.BaseURL 替换为 basePath）：
+	r.HandleFunc(basePath+"/empty", empty)
+	r.HandleFunc(basePath+"/backend/empty", empty)
+	r.Get(basePath+"/garbage", garbage)
+	r.Get(basePath+"/backend/garbage", garbage)
+	r.Get(basePath+"/getIP", getIP)
+	r.Get(basePath+"/backend/getIP", getIP)
 	// 兼容 PHP 旧路径
 	r.HandleFunc(baseURL+"/empty.php", empty)
 	r.HandleFunc(baseURL+"/backend/empty.php", empty)
