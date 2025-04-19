@@ -1,4 +1,4 @@
-module github.com/bupt-narc/speedtest
+module github.com/yarqwq/speedtest
 
 go 1.21.4
 
