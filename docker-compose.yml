@@ -1,8 +1,5 @@
-<<<<<<< HEAD
 # docker-compose.yml
 version: '3.8'
-=======
->>>>>>> b431acf (build container)
 
 services:
   frontend:
