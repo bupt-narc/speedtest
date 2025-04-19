@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/bupt-narc/speedtest"
+	"github.com/bupt-narc/speedtest/pkg/speedtest"
 	"os"
 )
 
