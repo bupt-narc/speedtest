@@ -53,17 +53,6 @@ func ListenAndServe() error {
 	r.Use(cs.Handler)
 	r.Use(middleware.NoCache)
 	r.Use(middleware.Recoverer)
-
-	frontendDomain := os.Getenv("FRONTEND_DOMAIN")
-    	if frontendDomain == "" {
-        	frontendDomain = "*" // 默认允许所有
-    	}
-	cs := cors.New(cors.Options{
-    		AllowedOrigins:   []string{frontendDomain}, // 动态读取环境变量
-    		AllowedMethods:   []string{"GET", "POST", "OPTIONS", "HEAD"},
-    		AllowedHeaders:   []string{"*"},
-    		AllowCredentials: true,                     // 可选，根据需求添加
-	})
 	// 定义测速 API 路由
 	// 替换 options.BaseURL 为环境变量读取：
 	basePath := os.Getenv("API_BASE_PATH")
