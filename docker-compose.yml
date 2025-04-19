@@ -1,23 +1,26 @@
+# docker-compose.yml
 version: '3.8'
 
 services:
   frontend:
     build: ./frontend
     ports:
-      - "80:80"
+      - "8081:80"
     environment:
-      - VUE_APP_BACKEND_URL=${BACKEND_DOMAIN}  # 前端通过此变量访问后端
+      - VUE_APP_API_BASE=${FRONTEND_API_BASE}  # 前端请求的基础URL
+      - BACKEND_DOMAIN=${BACKEND_SERVICE_URL}  # Nginx代理目标地址
     depends_on:
       - backend
 
   backend:
     build: ./backend
     environment:
+      - FRONTEND_DOMAIN=${FRONTEND_DOMAIN}    # 允许的CORS域名
+      - API_BASE_PATH=${API_BASE_PATH}        # API路径前缀
       - BIND_ADDRESS=0.0.0.0
       - PORT=80
-      - BASE_URL=/api          # 可选，统一 API 路径
     expose:
-      - "80"
+      - 80
     # 域名通过外部环境变量配置（如 BACKEND_DOMAIN=api.speedtest.example.com）
 
 networks:
