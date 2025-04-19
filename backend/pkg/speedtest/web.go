@@ -67,12 +67,12 @@ func ListenAndServe() error {
 	r.Get(basePath+"/getIP", getIP)
 	r.Get(basePath+"/backend/getIP", getIP)
 	// 兼容 PHP 旧路径
-	r.HandleFunc(baseURL+"/empty.php", empty)
-	r.HandleFunc(baseURL+"/backend/empty.php", empty)
-	r.Get(baseURL+"/garbage.php", garbage)
-	r.Get(baseURL+"/backend/garbage.php", garbage)
-	r.Get(baseURL+"/getIP.php", getIP)
-	r.Get(baseURL+"/backend/getIP.php", getIP)
+	r.HandleFunc(basePath+"/empty.php", empty)
+	r.HandleFunc(basePath+"/backend/empty.php", empty)
+	r.Get(basePath+"/garbage.php", garbage)
+	r.Get(basePath+"/backend/garbage.php", garbage)
+	r.Get(basePath+"/getIP.php", getIP)
+	r.Get(basePath+"/backend/getIP.php", getIP)
 
 	return startListener(r)
 }

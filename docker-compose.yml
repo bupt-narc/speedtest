@@ -3,6 +3,10 @@ services:
     build: ./frontend
     ports:
       - "8081:80"
+    environment:
+      - BACKEND_DOMAIN=backend:80
+    networks:
+      - speedtest-net 
     depends_on:
       - backend
 
