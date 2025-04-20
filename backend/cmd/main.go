@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/yarqwq/speedtest/pkg/speedtest"
+	"github.com/yarqwq/speedtest/pkg/core"
 	"os"
 )
 

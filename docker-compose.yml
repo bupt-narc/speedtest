@@ -1,10 +1,11 @@
 services:
   frontend:
     build: ./frontend
+    container_name: frontend
     ports:
       - "8081:80"
     environment:
-      - BACKEND_DOMAIN=backend:80
+      - VITE_BACKEND_URL=${BACKEND_URL}
     networks:
       - speedtest-net 
     depends_on:
@@ -12,18 +13,18 @@ services:
 
   backend:
     build: ./backend
+    container_name: backend
     environment:
-      FRONTEND_DOMAIN: http://localhost:8081  # 限制仅允许前端域名跨域
+      FRONTEND_DOMAIN: ${FRONTEND_DOMAIN}
       API_BASE_PATH: /api
       BIND_ADDRESS: 0.0.0.0
       PORT: 80
     ports:
       - "8080:80"  # 将容器内的80端口映射到主机的8080端口
-    expose:
-      - 80
     networks:
       - speedtest-net
 
 networks:
   speedtest-net:
     driver: bridge
+
