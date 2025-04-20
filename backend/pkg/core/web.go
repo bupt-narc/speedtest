@@ -2,19 +2,16 @@ package speedtest
 
 import (
 	"crypto/tls"
-	"embed"
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
 	"io"
-	"io/fs"
 	"net"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
-
+	"os"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
 	"github.com/go-chi/render"
 	"github.com/sirupsen/logrus"
 )
@@ -23,10 +20,11 @@ var (
 	randomData []byte
 )
 
-//go:embed frontend/dist
-var defaultAssets embed.FS
+
+//remove embed fun
 
 func ListenAndServe() error {
+	//get url by getEnv, instead of embed.(for all fun)
 	log := logrus.WithFields(logrus.Fields{
 		"func": "startListener",
 	})
@@ -36,39 +34,34 @@ func ListenAndServe() error {
 	r := chi.NewRouter()
 	r.Use(middleware.RealIP)
 	r.Use(middleware.GetHead)
-
-	cs := cors.New(cors.Options{
-		AllowedOrigins: []string{"*"},
-		AllowedMethods: []string{"GET", "POST", "OPTIONS", "HEAD"},
-		AllowedHeaders: []string{"*"},
-	})
-
-	r.Use(cs.Handler)
+	
 	r.Use(middleware.NoCache)
 	r.Use(middleware.Recoverer)
 
-	var assetFS http.FileSystem
-	sub, err := fs.Sub(defaultAssets, "frontend/dist")
-	if err != nil {
-		log.Fatalf("Failed when processing default assets: %s", err)
+	//var assetFS http.FileSystem
+	//sub, err := fs.Sub(defaultAssets, "frontend/dist")
+	//if err != nil {
+	//	log.Fatalf("Failed when processing default assets: %s", err)
+	//}
+	//assetFS = http.FS(sub)
+	baseURL := os.Getenv("API_BASE_PATH")
+	if baseURL == "" {
+	    baseURL = "/" // 默认根路径
 	}
-	assetFS = http.FS(sub)
-
-	r.Get(options.BaseURL+"/*", pages(assetFS, options.BaseURL))
-	r.HandleFunc(options.BaseURL+"/empty", empty)
-	r.HandleFunc(options.BaseURL+"/backend/empty", empty)
-	r.Get(options.BaseURL+"/garbage", garbage)
-	r.Get(options.BaseURL+"/backend/garbage", garbage)
-	r.Get(options.BaseURL+"/getIP", getIP)
-	r.Get(options.BaseURL+"/backend/getIP", getIP)
-
+// 修改所有路由注册代码（原 options.BaseURL 替换为 baseurl）：
+	r.HandleFunc(baseURL+"/empty", empty)
+	r.HandleFunc(baseURL+"/backend/empty", empty)
+	r.Get(baseURL+"/garbage", garbage)
+	r.Get(baseURL+"/backend/garbage", garbage)
+	r.Get(baseURL+"/getIP", getIP)
+	r.Get(baseURL+"/backend/getIP", getIP)
 	// PHP frontend default values compatibility
-	r.HandleFunc(options.BaseURL+"/empty.php", empty)
-	r.HandleFunc(options.BaseURL+"/backend/empty.php", empty)
-	r.Get(options.BaseURL+"/garbage.php", garbage)
-	r.Get(options.BaseURL+"/backend/garbage.php", garbage)
-	r.Get(options.BaseURL+"/getIP.php", getIP)
-	r.Get(options.BaseURL+"/backend/getIP.php", getIP)
+	r.HandleFunc(baseURL+"/empty.php", empty)
+	r.HandleFunc(baseURL+"/backend/empty.php", empty)
+	r.Get(baseURL+"/garbage.php", garbage)
+	r.Get(baseURL+"/backend/garbage.php", garbage)
+	r.Get(baseURL+"/getIP.php", getIP)
+	r.Get(baseURL+"/backend/getIP.php", getIP)
 
 	return startListener(r)
 }
@@ -116,28 +109,6 @@ func startListener(r *chi.Mux) error {
 	return s
 }
 
-//go:generate
-func pages(fs http.FileSystem, baseURL string) http.HandlerFunc {
-	log := logrus.WithFields(logrus.Fields{
-		"func": "pages",
-	})
-	var removeBaseURL *regexp.Regexp
-	if baseURL != "" {
-		removeBaseURL = regexp.MustCompile("^" + baseURL + "/")
-	}
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		log.Debugf("Request %s.", r.URL.Path)
-		if baseURL != "" {
-			r.URL.Path = removeBaseURL.ReplaceAllString(r.URL.Path, "/")
-		}
-		if r.RequestURI == "/" {
-			r.RequestURI = "/index.html"
-		}
-		http.FileServer(fs).ServeHTTP(w, r)
-	}
-
-	return fn
-}
 
 func empty(w http.ResponseWriter, r *http.Request) {
 	_, err := io.Copy(io.Discard, r.Body)

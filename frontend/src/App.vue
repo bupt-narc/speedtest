@@ -81,7 +81,7 @@ onMounted(() => {
 
 function testNetworkStatus() {
     const startTime = Date.now()
-    fetch("backend/getIP")
+    fetch("api/getIP")
         .then(response => {
             if (!response.ok) {
                 now.value.Ping = 0
@@ -104,44 +104,37 @@ function testNetworkStatus() {
 }
 
 async function testDownloadSpeed() {
-    /*const startTime = Date.now()
-    fetch("backend/garbage?ckSize=6")
-        .then(response => {
-            if (!response.ok) {
-                throw new Error("Failed to fetch from server!");
-            }
-            return response.blob()
-        })
-        .then((blob => {
-            console.log("startTime:" + startTime)
-            console.log("endTime:" + Date.now())
-            downloadSpeed.value = blob.size / 1024 / (Date.now() - startTime) * 1000
-            console.log(downloadSpeed.value)
-        }))*/
-    const response = await fetch("backend/garbage?ckSize=4");
-    const reader = response.body.getReader();
-    let totalSize = 0;
-    const startTime = Date.now()
-    let endTime = 0;
+  const response = await fetch("api/garbage?ckSize=4");
+  if (!response.ok) {
+    downloadSpeed.value = 0;
+    return;
+  }
 
-    if(!response.ok) {
-        downloadSpeed.value = 0;
-        return;
+  const reader = response.body?.getReader();
+  if (!reader) {
+    downloadSpeed.value = 0;
+    return;
+  }
+
+  let totalSize = 0;
+  const startTime = Date.now();
+  let endTime = 0;
+
+  const processData = (result: ReadableStreamReadResult<Uint8Array>): void => {
+    if (result.done) {
+      endTime = Date.now();
+      downloadSpeed.value = totalSize / 1024 / (endTime - startTime) * 1000;
+      return;
     }
-    const processData = (result) => {
 
-        if (result.done) {
-            endTime = Date.now();
-            downloadSpeed.value = totalSize / 1024 / (endTime - startTime) * 1000;
-            return;
-        }
-        // 读取下一个文件片段，重复处理步骤
-        const value = result.value; // Uint8Array
-        const length = value.length;
-        totalSize += length
-        return reader.read().then(processData);
-    };
+    const value = result.value;
+    const length = value.length;
+    totalSize += length;
+
     reader.read().then(processData);
+  };
+
+  reader.read().then(processData);
 }
 
 async function testUploadSpeed() {
@@ -154,7 +147,7 @@ async function testUploadSpeed() {
         dataView.setUint8(i, i % 256);
     }
     const startTime = Date.now();
-    fetch("backend/empty", {
+    fetch("api/empty", {
         method: "POST",
         body: dataView
     })

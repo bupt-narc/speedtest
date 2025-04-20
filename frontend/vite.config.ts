@@ -14,12 +14,12 @@ export default defineConfig({
     }
   },
   server: {
-    host: "127.0.0.1",
+    host: "0.0.0.0",
     port: 5173,
     open: false,
     proxy: {
-      '^/backend': {
-        target: "http://127.0.0.1:8080",
+      '^/api': {
+        target: process.env.VITE_BACKEND_URL || 'http://localhost:8081',
         changeOrigin: true
       }
     }
