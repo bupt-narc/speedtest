@@ -32,4 +32,5 @@ make container
 
 其中`backend/garbage`支持一个请求参数`ckSize`，指定返回垃圾数据的大小，单位是`MB`。
 
+update 1：为了前后端容器化，重构了项目结构，修改了main.go、web.go和App.vue中的一些写法，增加了必要的配[>最终访问域名在.env配置, 端口仍是固定端口(在docker-compose.yml中修改)
 
