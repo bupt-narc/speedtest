@@ -81,7 +81,7 @@ onMounted(() => {
 
 function testNetworkStatus() {
     const startTime = Date.now()
-    fetch("backend/getIP")
+    fetch("api/getIP") //change backend to api ,for standard 
         .then(response => {
             if (!response.ok) {
                 now.value.Ping = 0
@@ -105,7 +105,7 @@ function testNetworkStatus() {
 
 async function testDownloadSpeed() {
     /*const startTime = Date.now()
-    fetch("backend/garbage?ckSize=6")
+    fetch("api/garbage?ckSize=6")
         .then(response => {
             if (!response.ok) {
                 throw new Error("Failed to fetch from server!");
@@ -154,7 +154,7 @@ async function testUploadSpeed() {
         dataView.setUint8(i, i % 256);
     }
     const startTime = Date.now();
-    fetch("backend/empty", {
+    fetch("api/empty", {
         method: "POST",
         body: dataView
     })
