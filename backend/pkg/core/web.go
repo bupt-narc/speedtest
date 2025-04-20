@@ -2,19 +2,16 @@ package speedtest
 
 import (
 	"crypto/tls"
-	"embed"
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
 	"io"
-	"io/fs"
 	"net"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
-
+	"os"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
 	"github.com/go-chi/render"
 	"github.com/sirupsen/logrus"
 )
@@ -23,13 +20,6 @@ var (
 	randomData []byte
 )
 
-//add fun getEnv 
-func getEnv(key, fallback string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return fallback
-}
 
 //remove embed fun
 
@@ -45,18 +35,6 @@ func ListenAndServe() error {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.GetHead)
 	
-	// 从环境变量读取 CORS 允许的域名
-	frontendDomain := os.Getenv("FRONTEND_DOMAIN")
-	if frontendDomain == "" {
-		frontendDomain = "*"
-	}
-	cs := cors.New(cors.Options{
-		AllowedOrigins: []string{"frontendDomain"},
-		AllowedMethods: []string{"GET", "POST", "OPTIONS", "HEAD"},
-		AllowedHeaders: []string{"*"},
-	})
-
-	r.Use(cs.Handler)
 	r.Use(middleware.NoCache)
 	r.Use(middleware.Recoverer)
 
@@ -78,12 +56,12 @@ func ListenAndServe() error {
 	r.Get(baseURL+"/getIP", getIP)
 	r.Get(baseURL+"/backend/getIP", getIP)
 	// PHP frontend default values compatibility
-	r.HandleFunc(BaseURL+"/empty.php", empty)
-	r.HandleFunc(BaseURL+"/backend/empty.php", empty)
-	r.Get(BaseURL+"/garbage.php", garbage)
-	r.Get(BaseURL+"/backend/garbage.php", garbage)
-	r.Get(BaseURL+"/getIP.php", getIP)
-	r.Get(BaseURL+"/backend/getIP.php", getIP)
+	r.HandleFunc(baseURL+"/empty.php", empty)
+	r.HandleFunc(baseURL+"/backend/empty.php", empty)
+	r.Get(baseURL+"/garbage.php", garbage)
+	r.Get(baseURL+"/backend/garbage.php", garbage)
+	r.Get(baseURL+"/getIP.php", getIP)
+	r.Get(baseURL+"/backend/getIP.php", getIP)
 
 	return startListener(r)
 }

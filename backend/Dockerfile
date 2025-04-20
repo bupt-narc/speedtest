@@ -1,5 +1,5 @@
 # backend/Dockerfile
-FROM golang:1.19-alpine as builder
+FROM golang:1.21-alpine as builder
 WORKDIR /app
 
 # 先复制依赖文件并下载
