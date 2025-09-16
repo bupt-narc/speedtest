@@ -69,4 +69,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # 启动应用
 ENTRYPOINT ["./speedtest"]
-CMD ["--bind-address", "0.0.0.0", "--port", "8080"]
+CMD []

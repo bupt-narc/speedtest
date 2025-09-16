@@ -2,6 +2,8 @@ package speedtest
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -30,6 +32,47 @@ func (o *Option) WithDefaults() *Option {
 	o.BaseURL = defaultBaseURL
 	o.EnableHTTP2 = defaultEnableHTTP2
 	o.EnableTLS = defaultEnableTLS
+	return o
+}
+
+func (o *Option) WithEnvironment() *Option {
+	// 从环境变量读取配置，如果环境变量存在则覆盖默认值
+	if envLogLevel := os.Getenv("LOG_LEVEL"); envLogLevel != "" {
+		o.LogLevel = envLogLevel
+	}
+
+	if envBindAddress := os.Getenv("BIND_ADDRESS"); envBindAddress != "" {
+		o.BindAddress = envBindAddress
+	}
+
+	if envPort := os.Getenv("PORT"); envPort != "" {
+		if port, err := strconv.Atoi(envPort); err == nil {
+			o.Port = port
+		}
+	}
+
+	if envBaseURL := os.Getenv("BASE_URL"); envBaseURL != "" {
+		o.BaseURL = envBaseURL
+	}
+
+	if envHTTP2 := os.Getenv("ENABLE_HTTP2"); envHTTP2 != "" {
+		if http2, err := strconv.ParseBool(envHTTP2); err == nil {
+			o.EnableHTTP2 = http2
+		}
+	}
+
+	if envTLS := os.Getenv("ENABLE_TLS"); envTLS != "" {
+		if tls, err := strconv.ParseBool(envTLS); err == nil && tls {
+			o.EnableTLS = true
+			if certFile := os.Getenv("TLS_CERT_FILE"); certFile != "" {
+				o.TLSCertFile = certFile
+			}
+			if keyFile := os.Getenv("TLS_KEY_FILE"); keyFile != "" {
+				o.TLSKeyFile = keyFile
+			}
+		}
+	}
+
 	return o
 }
 

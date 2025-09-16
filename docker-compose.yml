@@ -12,8 +12,17 @@ services:
       - BIND_ADDRESS=0.0.0.0
       - PORT=8080
       - LOG_LEVEL=info
-    env_file:
-      - config.env
+      - BASE_URL=
+      - ENABLE_TLS=false
+      - ENABLE_HTTP2=false
+      - TLS_CERT_FILE=
+      - TLS_KEY_FILE=
+      - CHUNK_SIZE=4
+      - MAX_CHUNK_SIZE=100
+      - HTTP_TIMEOUT=30s
+      - ALLOWED_ORIGINS=*
+      - ALLOWED_METHODS=GET,POST,OPTIONS,HEAD
+      - ALLOWED_HEADERS=*
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/"]
