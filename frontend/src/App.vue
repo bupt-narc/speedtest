@@ -69,15 +69,40 @@ const chartJitterRef = ref<{ chartData: [] }>()
 const chartDownloadSpeedRef = ref<{ chartData: [] }>()
 const chartUploadSpeedRef = ref<{ chartData: [] }>()
 
+// Track ongoing tests to prevent overlaps
+let downloadTestInProgress = false;
+let uploadTestInProgress = false;
+
 onMounted(() => {
-    timer = setInterval(() => {
-        testNetworkStatus();
-        testDownloadSpeed();
-        testUploadSpeed();
-        addNetworkData();
-        updateCharts();
-    }, 1000)
+    // Warm up connection first
+    warmupConnection().then(() => {
+        // Run tests every 2 seconds to avoid overlap
+        timer = setInterval(() => {
+            testNetworkStatus();
+            if (!downloadTestInProgress) {
+                testDownloadSpeed();
+            }
+            if (!uploadTestInProgress) {
+                testUploadSpeed();
+            }
+            addNetworkData();
+            updateCharts();
+        }, 2000)
+    })
 })
+
+// Warm up the connection to the server
+async function warmupConnection() {
+    try {
+        // Make a few small requests to establish the connection
+        for (let i = 0; i < 3; i++) {
+            await fetch("backend/getIP");
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+    } catch (error) {
+        console.error("Warmup failed:", error);
+    }
+}
 
 function testNetworkStatus() {
     const startTime = Date.now()
@@ -104,88 +129,118 @@ function testNetworkStatus() {
 }
 
 async function testDownloadSpeed() {
-    /*const startTime = Date.now()
-    fetch("backend/garbage?ckSize=6")
-        .then(response => {
-            if (!response.ok) {
-                throw new Error("Failed to fetch from server!");
-            }
-            return response.blob()
-        })
-        .then((blob => {
-            console.log("startTime:" + startTime)
-            console.log("endTime:" + Date.now())
-            downloadSpeed.value = blob.size / 1024 / (Date.now() - startTime) * 1000
-            console.log(downloadSpeed.value)
-        }))*/
-    const response = await fetch("backend/garbage?ckSize=4");
-    
-    if(!response.ok) {
-        downloadSpeed.value = 0;
-        return;
+    if (downloadTestInProgress) {
+        return; // Skip if test is already running
     }
     
-    if (!response.body) {
-        downloadSpeed.value = 0;
-        return;
-    }
+    downloadTestInProgress = true;
     
-    const reader = response.body.getReader();
-    let totalSize = 0;
-    const startTime = Date.now()
-    let endTime = 0;
-
-    const processData = (result: ReadableStreamReadResult<Uint8Array>): void => {
-        if (result.done) {
-            endTime = Date.now();
-            downloadSpeed.value = totalSize / 1024 / (endTime - startTime) * 1000;
+    try {
+        const response = await fetch("backend/garbage?ckSize=8");
+        
+        if(!response.ok) {
+            downloadSpeed.value = 0;
+            downloadTestInProgress = false;
             return;
         }
-        // 读取下一个文件片段，重复处理步骤
-        const value = result.value; // Uint8Array
-        const length = value.length;
-        totalSize += length
+        
+        if (!response.body) {
+            downloadSpeed.value = 0;
+            downloadTestInProgress = false;
+            return;
+        }
+        
+        const reader = response.body.getReader();
+        let totalSize = 0;
+        let startTime = 0;
+        let endTime = 0;
+        let firstChunkReceived = false;
+
+        const processData = (result: ReadableStreamReadResult<Uint8Array>): void => {
+            if (result.done) {
+                endTime = Date.now();
+                // Calculate speed: totalSize in bytes, time in milliseconds
+                // Convert to KB/s: (bytes / 1024) / (ms / 1000) = bytes * 1000 / 1024 / ms
+                if (firstChunkReceived && endTime > startTime) {
+                    const newSpeed = totalSize / 1024 / (endTime - startTime) * 1000;
+                    // Apply smoothing to reduce fluctuations
+                    downloadSpeed.value = downloadSpeed.value === 0 ? newSpeed : 
+                        newSpeed * 0.3 + downloadSpeed.value * 0.7;
+                }
+                downloadTestInProgress = false;
+                return;
+            }
+            
+            // Start timing after first chunk to exclude connection overhead
+            if (!firstChunkReceived) {
+                startTime = Date.now();
+                firstChunkReceived = true;
+            }
+            
+            // Read next chunk
+            const value = result.value;
+            const length = value.length;
+            totalSize += length;
+            reader.read().then(processData);
+        };
+        
         reader.read().then(processData);
-    };
-    reader.read().then(processData);
+    } catch (error) {
+        console.error("Download test failed:", error);
+        downloadTestInProgress = false;
+    }
 }
 
 async function testUploadSpeed() {
-
-    const fileSizeInBytes = 1024 * 1024; // 1MB
-    const buffer = new ArrayBuffer(fileSizeInBytes);
-    const dataView = new DataView(buffer);
-
-    for (let i = 0; i < fileSizeInBytes; i++) {
-        dataView.setUint8(i, i % 256);
+    if (uploadTestInProgress) {
+        return; // Skip if test is already running
     }
-    const startTime = Date.now();
-    fetch("backend/empty", {
-        method: "POST",
-        body: dataView
-    })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error("Failed to fetch from server!");
-            }
-        })
-        .then(() => {
-            uploadSpeed.value = fileSizeInBytes / 1024 / (Date.now() - startTime) * 1000
-        })
+    
+    uploadTestInProgress = true;
+    
+    try {
+        // Create 2MB of data for a more accurate test
+        const fileSizeInBytes = 2 * 1024 * 1024; // 2MB
+        const buffer = new ArrayBuffer(fileSizeInBytes);
+        const dataView = new DataView(buffer);
 
-    /*const response = await fetch("backend/empty", {
-        method: "POST",
-        body: dataView
-    })
-    const writer = response.body.getWriter();
-    let totalSize = 0;
-    const startTime = Date.now()
-    let endTime = 0;
-    if(!response.ok) {
-        uploadSpeed.value = 0;
-        return;
-    }*/
-
+        // Fill with random-ish data
+        for (let i = 0; i < fileSizeInBytes; i++) {
+            dataView.setUint8(i, i % 256);
+        }
+        
+        // Start timing just before the fetch
+        const startTime = Date.now();
+        
+        const response = await fetch("backend/empty", {
+            method: "POST",
+            body: dataView
+        });
+        
+        if (!response.ok) {
+            uploadSpeed.value = 0;
+            uploadTestInProgress = false;
+            return;
+        }
+        
+        // Calculate upload speed
+        // Time includes upload + minimal server processing
+        // This is more accurate than trying to separate them
+        const endTime = Date.now();
+        const durationMs = endTime - startTime;
+        
+        if (durationMs > 0) {
+            const newSpeed = fileSizeInBytes / 1024 / durationMs * 1000;
+            // Apply smoothing to reduce fluctuations
+            uploadSpeed.value = uploadSpeed.value === 0 ? newSpeed :
+                newSpeed * 0.3 + uploadSpeed.value * 0.7;
+        }
+        
+        uploadTestInProgress = false;
+    } catch (error) {
+        console.error("Upload test failed:", error);
+        uploadTestInProgress = false;
+    }
 }
 
 function saveCSV() {
