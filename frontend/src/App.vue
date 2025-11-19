@@ -119,17 +119,23 @@ async function testDownloadSpeed() {
             console.log(downloadSpeed.value)
         }))*/
     const response = await fetch("backend/garbage?ckSize=4");
+    
+    if(!response.ok) {
+        downloadSpeed.value = 0;
+        return;
+    }
+    
+    if (!response.body) {
+        downloadSpeed.value = 0;
+        return;
+    }
+    
     const reader = response.body.getReader();
     let totalSize = 0;
     const startTime = Date.now()
     let endTime = 0;
 
-    if(!response.ok) {
-        downloadSpeed.value = 0;
-        return;
-    }
-    const processData = (result) => {
-
+    const processData = (result: ReadableStreamReadResult<Uint8Array>): void => {
         if (result.done) {
             endTime = Date.now();
             downloadSpeed.value = totalSize / 1024 / (endTime - startTime) * 1000;
@@ -139,7 +145,7 @@ async function testDownloadSpeed() {
         const value = result.value; // Uint8Array
         const length = value.length;
         totalSize += length
-        return reader.read().then(processData);
+        reader.read().then(processData);
     };
     reader.read().then(processData);
 }

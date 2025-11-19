@@ -14,6 +14,7 @@ func runCli(cmd *cobra.Command, _ []string) error {
 	var err error
 	options, err = NewOption().
 		WithDefaults().
+		WithEnvironment().
 		WithCliFlags(cmd.Flags()).
 		Validate()
 	if err != nil {
